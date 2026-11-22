@@ -14,7 +14,7 @@ const SAMPLE_SERVICES = [
       "Personalized consultation, precision haircut tailored to your face shape, soothing botanical wash, and signature blowout finish.",
     price: 65,
     duration: 60,
-    image: "/images/services/haircut-styling.png",
+    image: "/images/services/haircut-styling.jpg",
     status: "active" as const,
   },
   {
@@ -24,7 +24,7 @@ const SAMPLE_SERVICES = [
       "Hand-painted sun-kissed highlights paired with a bond-protecting botanical gloss for luminous, low-maintenance color.",
     price: 165,
     duration: 150,
-    image: "/images/services/hair-coloring.png",
+    image: "/images/services/hair-coloring.jpg",
     status: "active" as const,
   },
   {
@@ -34,7 +34,7 @@ const SAMPLE_SERVICES = [
       "Deep restorative smoothing treatment infused with plant keratin and argan oil to eliminate frizz and restore mirror-like shine.",
     price: 130,
     duration: 90,
-    image: "/images/services/hair-treatment.png",
+    image: "/images/services/hair-treatment.jpg",
     status: "active" as const,
   },
   {
@@ -44,7 +44,7 @@ const SAMPLE_SERVICES = [
       "Gentle enzyme exfoliation, lymphatic facial massage, and nutrient-rich green tea hydration mask for visibly refreshed skin.",
     price: 95,
     duration: 60,
-    image: "/images/services/facial-skincare.png",
+    image: "/images/services/facial-skincare.jpg",
     status: "active" as const,
   },
   {
@@ -54,7 +54,7 @@ const SAMPLE_SERVICES = [
       "Breathable, camera-ready complexion work and softly sculpted eyes customized for weddings, portraits, or evening occasions.",
     price: 110,
     duration: 75,
-    image: "/images/services/makeup.png",
+    image: "/images/services/makeup.jpg",
     status: "active" as const,
   },
   {
@@ -64,7 +64,7 @@ const SAMPLE_SERVICES = [
       "Detailed cuticle care, warm mineral soak, sugar exfoliation, nourishing hand and foot massage, and long-wear polish.",
     price: 75,
     duration: 75,
-    image: "/images/services/manicure-pedicure.png",
+    image: "/images/services/manicure-pedicure.jpg",
     status: "active" as const,
   },
   {
@@ -74,7 +74,7 @@ const SAMPLE_SERVICES = [
       "Slow, restorative full-body massage combining heated basalt stones and warm eucalyptus oil to melt away deep tension.",
     price: 120,
     duration: 60,
-    image: "/images/services/spa-massage.png",
+    image: "/images/services/spa-massage.jpg",
     status: "active" as const,
   },
   {
@@ -84,7 +84,7 @@ const SAMPLE_SERVICES = [
       "Healthy end-trimming and humidity-resistant silk styling designed to leave hair bouncy, sleek, and protected.",
     price: 80,
     duration: 60,
-    image: "/images/services/silk-press.png",
+    image: "/images/services/silk-press.jpg",
     status: "active" as const,
   },
 ];
