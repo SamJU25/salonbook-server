@@ -67,7 +67,15 @@ export function createApp() {
     });
   });
 
-  app.get("/api/v1/health", (_req, res) => {
+  app.get("/api/v1/health", async (_req, res) => {
+    if (mongoose.connection.readyState !== 1 && process.env.NODE_ENV !== "test") {
+      try {
+        await connectDB();
+      } catch {
+        // Report degraded DB readiness cleanly below without crashing health probe
+      }
+    }
+
     res.status(200).json({
       success: true,
       status: "ok",
