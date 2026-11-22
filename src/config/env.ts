@@ -20,7 +20,19 @@ const seedEnvSchema = z.object({
 const envSchema = seedEnvSchema.extend({
   PORT: z.coerce.number().int().positive().default(5000),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  CLIENT_URL: z.string().url("CLIENT_URL must be a valid URL").default("http://localhost:3000"),
+  CLIENT_URL: z
+    .string()
+    .trim()
+    .default("http://localhost:3000")
+    .refine(
+      (val) =>
+        val
+          .split(",")
+          .map((u) => u.trim())
+          .filter(Boolean)
+          .every((u) => z.string().url().safeParse(u).success),
+      "CLIENT_URL must be a valid URL or comma-separated list of valid URLs"
+    ),
   STRIPE_SECRET_KEY: z.string().min(1, "STRIPE_SECRET_KEY is required"),
   STRIPE_WEBHOOK_SECRET: z.string().min(1, "STRIPE_WEBHOOK_SECRET is required"),
   IMGBB_API_KEY: z.string().min(1, "IMGBB_API_KEY is required"),
