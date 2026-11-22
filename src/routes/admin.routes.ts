@@ -4,6 +4,7 @@ import {
   patchAdminAppointmentStatus,
 } from "../controllers/appointment.controller.js";
 import { getAdminDashboardOverview } from "../controllers/overview.controller.js";
+import { getAdminTransactions } from "../controllers/payment.controller.js";
 import {
   getAdminServices,
   patchAdminService,
@@ -64,5 +65,8 @@ adminRouter.patch(
   validateBody(toggleUserBlockSchema),
   asyncHandler(patchAdminUserBlock)
 );
+
+// Admin transactions (strictly read-only)
+adminRouter.get("/transactions", asyncHandler(getAdminTransactions));
 
 export default adminRouter;
