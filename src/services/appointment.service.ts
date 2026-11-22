@@ -1,8 +1,18 @@
 import mongoose from "mongoose";
-import type { AppointmentStatus, PaymentStatus, UserRole } from "../constants/salon.js";
+import type {
+  AppointmentStatus,
+  PaymentStatus,
+  TimeSlot,
+  UserRole,
+} from "../constants/salon.js";
 import { Appointment, type IAppointment } from "../models/appointment.model.js";
 import { Service } from "../models/service.model.js";
 import { ApiError } from "../utils/apiError.js";
+import {
+  getSalonNow,
+  isValidCalendarDate,
+  parseTimeSlotMinutes,
+} from "../utils/date.js";
 import { assertValidObjectId } from "../utils/objectId.js";
 import type { CreateAppointmentInput } from "../validators/appointment.validator.js";
 
@@ -43,19 +53,49 @@ export function assertAdminAppointmentTransition(
 }
 
 /**
- * Checks whether an appointment date string (YYYY-MM-DD) is not in the past.
- * Uses a 12-hour buffer to accommodate client timezones ahead/behind UTC.
+ * Checks whether an appointment date string (YYYY-MM-DD) is valid and not in the past
+ * relative to the salon's current date.
  */
-export function assertNotPastDate(appointmentDate: string): void {
-  const earliestAllowed = new Date(Date.now() - 12 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
+export function assertNotPastDate(
+  appointmentDate: string,
+  now: Date = new Date()
+): void {
+  if (!isValidCalendarDate(appointmentDate)) {
+    throw new ApiError(
+      400,
+      "Appointment date must be a valid calendar date",
+      "INVALID_DATE"
+    );
+  }
 
-  if (appointmentDate < earliestAllowed) {
+  const salonNow = getSalonNow(now);
+  if (appointmentDate < salonNow.date) {
     throw new ApiError(
       400,
       "Appointment date cannot be in the past",
       "INVALID_DATE"
+    );
+  }
+}
+
+/**
+ * Ensures the selected appointment date and time slot have not already passed.
+ */
+export function assertSlotNotPast(
+  appointmentDate: string,
+  timeSlot: TimeSlot,
+  now: Date = new Date()
+): void {
+  assertNotPastDate(appointmentDate, now);
+  const salonNow = getSalonNow(now);
+  if (
+    appointmentDate === salonNow.date &&
+    parseTimeSlotMinutes(timeSlot) <= salonNow.minutes
+  ) {
+    throw new ApiError(
+      400,
+      "Selected time slot has already passed for today",
+      "SLOT_IN_PAST"
     );
   }
 }
@@ -65,7 +105,7 @@ export async function createCustomerAppointment(
   input: CreateAppointmentInput
 ): Promise<IAppointment> {
   assertValidObjectId(customerId, "Customer");
-  assertNotPastDate(input.appointmentDate);
+  assertSlotNotPast(input.appointmentDate, input.timeSlot);
 
   const service = await Service.findById(input.serviceId).lean();
   if (!service) {

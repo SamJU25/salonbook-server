@@ -10,6 +10,16 @@ import { escapeRegex } from "../src/utils/regex.js";
 
 describe("service validators & utilities", () => {
   it("rejects non-positive price or duration", () => {
+    const subMinimumPrice = createServiceSchema.safeParse({
+      serviceName: "Test Cut",
+      category: "Haircut & Styling",
+      description: "Detailed haircut service for testing.",
+      price: 0.4,
+      duration: 45,
+      image: "https://i.ibb.co/example/cut.png",
+    });
+    assert.equal(subMinimumPrice.success, false);
+
     const zeroPrice = createServiceSchema.safeParse({
       serviceName: "Test Cut",
       category: "Haircut & Styling",

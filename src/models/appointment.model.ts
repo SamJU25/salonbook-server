@@ -17,6 +17,7 @@ export interface IAppointment extends Document {
   servicePrice: number;
   paymentStatus: PaymentStatus;
   status: AppointmentStatus;
+  pendingStripeSessionId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -67,6 +68,10 @@ const appointmentSchema = new Schema<IAppointment>(
       enum: APPOINTMENT_STATUSES,
       default: "pending",
       index: true,
+    },
+    pendingStripeSessionId: {
+      type: String,
+      trim: true,
     },
   },
   {

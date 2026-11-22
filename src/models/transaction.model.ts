@@ -58,6 +58,14 @@ const transactionSchema = new Schema<ITransaction>(
 );
 
 transactionSchema.index({ createdAt: -1 });
+transactionSchema.index(
+  { appointmentId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: "paid" },
+    name: "unique_paid_appointment_transaction",
+  }
+);
 
 export const Transaction: Model<ITransaction> =
   (mongoose.models.Transaction as Model<ITransaction>) ||

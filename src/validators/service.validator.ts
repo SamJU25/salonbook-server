@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { SERVICE_STATUSES } from "../constants/salon.js";
+import { isValidCalendarDate } from "../utils/date.js";
 
 export const listServicesQuerySchema = z.object({
   search: z.string().trim().max(100).optional(),
@@ -13,7 +14,8 @@ export type ListServicesQuery = z.infer<typeof listServicesQuerySchema>;
 export const bookedSlotsQuerySchema = z.object({
   date: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must use YYYY-MM-DD format"),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must use YYYY-MM-DD format")
+    .refine(isValidCalendarDate, "Date must be a valid calendar date"),
 });
 
 export const createServiceSchema = z.object({
@@ -35,7 +37,7 @@ export const createServiceSchema = z.object({
   price: z.coerce
     .number()
     .finite("Price must be a valid number")
-    .positive("Price must be a positive number"),
+    .min(0.5, "Price must be at least $0.50"),
   duration: z.coerce
     .number()
     .int("Estimated duration must be a whole number of minutes")

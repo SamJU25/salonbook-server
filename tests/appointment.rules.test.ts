@@ -3,8 +3,10 @@ import { describe, it } from "node:test";
 import {
   assertAdminAppointmentTransition,
   assertNotPastDate,
+  assertSlotNotPast,
 } from "../src/services/appointment.service.js";
 import { ApiError } from "../src/utils/apiError.js";
+import { isValidCalendarDate } from "../src/utils/date.js";
 import { createAppointmentSchema } from "../src/validators/appointment.validator.js";
 import { updateProfileSchema } from "../src/validators/user.validator.js";
 
@@ -39,11 +41,32 @@ describe("appointment rules & profile whitelist", () => {
     );
   });
 
-  it("rejects clearly past appointment dates and invalid time slots", () => {
+  it("rejects clearly past appointment dates, invalid calendar dates, past slots today, and invalid time slots", () => {
     assert.throws(
       () => assertNotPastDate("2020-01-01"),
       (err: unknown) => err instanceof ApiError && err.statusCode === 400
     );
+
+    assert.equal(isValidCalendarDate("2026-02-30"), false);
+    assert.equal(isValidCalendarDate("2028-02-29"), true);
+    assert.equal(isValidCalendarDate("2026-02-29"), false);
+
+    // 2026-05-10 18:00 UTC = 1:00 PM CDT in Austin (America/Chicago)
+    const middayAustin = new Date("2026-05-10T18:00:00Z");
+    assert.throws(
+      () => assertSlotNotPast("2026-05-10", "09:00 AM", middayAustin),
+      (err: unknown) => err instanceof ApiError && err.code === "SLOT_IN_PAST"
+    );
+    assert.doesNotThrow(() =>
+      assertSlotNotPast("2026-05-10", "03:00 PM", middayAustin)
+    );
+
+    const invalidDate = createAppointmentSchema.safeParse({
+      serviceId: "507f1f77bcf86cd799439011",
+      appointmentDate: "2026-02-30",
+      timeSlot: "09:00 AM",
+    });
+    assert.equal(invalidDate.success, false);
 
     const invalidSlot = createAppointmentSchema.safeParse({
       serviceId: "507f1f77bcf86cd799439011",

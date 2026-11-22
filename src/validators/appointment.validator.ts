@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PREDEFINED_TIME_SLOTS } from "../constants/salon.js";
+import { isValidCalendarDate } from "../utils/date.js";
 import { isValidObjectId } from "../utils/objectId.js";
 
 export const createAppointmentSchema = z.object({
@@ -10,7 +11,8 @@ export const createAppointmentSchema = z.object({
   appointmentDate: z
     .string()
     .trim()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Appointment date must use YYYY-MM-DD format"),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Appointment date must use YYYY-MM-DD format")
+    .refine(isValidCalendarDate, "Appointment date must be a valid calendar date"),
   timeSlot: z.enum(PREDEFINED_TIME_SLOTS, {
     errorMap: () => ({ message: "Please select a valid available time slot" }),
   }),

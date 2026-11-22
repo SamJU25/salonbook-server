@@ -76,12 +76,34 @@ export async function createCheckoutSessionForAppointment(
     );
   }
 
+  const stripe = getStripe();
+
+  // Reuse an already-open unpaid Checkout session to prevent duplicate charges across tabs.
+  if (appointment.pendingStripeSessionId) {
+    try {
+      const existingSession = await stripe.checkout.sessions.retrieve(
+        appointment.pendingStripeSessionId
+      );
+      if (
+        existingSession.status === "open" &&
+        existingSession.url &&
+        existingSession.payment_status === "unpaid"
+      ) {
+        return {
+          url: existingSession.url,
+          sessionId: existingSession.id,
+        };
+      }
+    } catch {
+      // Fall through to create a fresh session if the previous one is invalid/expired.
+    }
+  }
+
   const serviceName = appointment.serviceId?.serviceName || "Salon Appointment";
   const serviceCategory = appointment.serviceId?.category || "Salon Service";
 
   const { CLIENT_URL } = getEnv();
   const baseClientUrl = CLIENT_URL.split(",")[0]!.trim().replace(/\/+$/, "");
-  const stripe = getStripe();
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -115,6 +137,11 @@ export async function createCheckoutSessionForAppointment(
     );
   }
 
+  await Appointment.updateOne(
+    { _id: appointment._id },
+    { $set: { pendingStripeSessionId: session.id } }
+  );
+
   return {
     url: session.url,
     sessionId: session.id,
@@ -122,87 +149,140 @@ export async function createCheckoutSessionForAppointment(
 }
 
 /**
+ * Idempotently records a paid Stripe Checkout session onto an appointment & transaction.
+ * Refunds if the appointment was cancelled in the meantime, and prevents duplicate paid records.
+ */
+async function fulfillPaidCheckoutSession(
+  session: Stripe.Checkout.Session,
+  stripeClient: Stripe = getStripe()
+): Promise<{ handled: boolean }> {
+  if (session.payment_status !== "paid") {
+    return { handled: false };
+  }
+
+  const appointmentId = session.metadata?.appointmentId;
+  const customerId = session.metadata?.customerId;
+  if (
+    !appointmentId ||
+    !customerId ||
+    !isValidObjectId(appointmentId) ||
+    !isValidObjectId(customerId)
+  ) {
+    return { handled: false };
+  }
+
+  const existingPaid = await Transaction.findOne({
+    $or: [
+      { stripeSessionId: session.id, status: "paid" },
+      { appointmentId: new mongoose.Types.ObjectId(appointmentId), status: "paid" },
+    ],
+  })
+    .select("_id")
+    .lean();
+
+  if (existingPaid) {
+    return { handled: true };
+  }
+
+  const appointment = await Appointment.findOneAndUpdate(
+    {
+      _id: appointmentId,
+      customerId: new mongoose.Types.ObjectId(customerId),
+      status: "confirmed",
+      paymentStatus: "unpaid",
+    },
+    {
+      $set: { paymentStatus: "paid" },
+      $unset: { pendingStripeSessionId: 1 },
+    },
+    { new: true }
+  );
+
+  if (!appointment) {
+    const existingAppt = await Appointment.findById(appointmentId).lean();
+    if (existingAppt?.paymentStatus === "paid") {
+      return { handled: true };
+    }
+
+    // If an unpaid confirmed appointment was cancelled while customer finished Stripe Checkout,
+    // automatically trigger a refund and mark the transaction failed so no charge is orphaned.
+    if (existingAppt?.status === "cancelled") {
+      if (typeof session.payment_intent === "string") {
+        try {
+          await stripeClient.refunds.create({
+            payment_intent: session.payment_intent,
+          });
+        } catch (refundErr) {
+          console.error("Failed automatic refund for cancelled appointment:", refundErr);
+        }
+      }
+
+      const amountTotal =
+        typeof session.amount_total === "number" ? session.amount_total / 100 : 0;
+      await Transaction.findOneAndUpdate(
+        { stripeSessionId: session.id },
+        {
+          $setOnInsert: {
+            appointmentId: existingAppt._id,
+            customerId: new mongoose.Types.ObjectId(customerId),
+            amount: amountTotal,
+            currency: (session.currency || "usd").toLowerCase(),
+            stripeSessionId: session.id,
+            status: "failed",
+          },
+        },
+        { upsert: true }
+      ).catch(() => {});
+    }
+
+    return { handled: false };
+  }
+
+  const amountPaid =
+    typeof session.amount_total === "number"
+      ? session.amount_total / 100
+      : appointment.servicePrice;
+
+  try {
+    await Transaction.findOneAndUpdate(
+      { stripeSessionId: session.id },
+      {
+        $set: {
+          appointmentId: appointment._id,
+          customerId: new mongoose.Types.ObjectId(customerId),
+          amount: amountPaid,
+          currency: (session.currency || "usd").toLowerCase(),
+          status: "paid",
+        },
+      },
+      { upsert: true, new: true }
+    );
+  } catch (err) {
+    if (
+      !(
+        typeof err === "object" &&
+        err !== null &&
+        "code" in err &&
+        (err as { code?: number }).code === 11000
+      )
+    ) {
+      throw err;
+    }
+  }
+
+  return { handled: true };
+}
+
+/**
  * Processes a cryptographically verified Stripe webhook event idempotently.
- * Appointment paymentStatus is ONLY marked "paid" here.
+ * Appointment paymentStatus is ONLY marked "paid" via verified Stripe payment data.
  */
 export async function processVerifiedStripeEvent(
   event: Stripe.Event
 ): Promise<{ handled: boolean }> {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    if (session.payment_status !== "paid") {
-      return { handled: false };
-    }
-
-    const appointmentId = session.metadata?.appointmentId;
-    const customerId = session.metadata?.customerId;
-    if (
-      !appointmentId ||
-      !customerId ||
-      !isValidObjectId(appointmentId) ||
-      !isValidObjectId(customerId)
-    ) {
-      return { handled: false };
-    }
-
-    const existingPaid = await Transaction.findOne({
-      stripeSessionId: session.id,
-      status: "paid",
-    })
-      .select("_id")
-      .lean();
-
-    if (existingPaid) {
-      return { handled: true };
-    }
-
-    const appointment = await Appointment.findOneAndUpdate(
-      {
-        _id: appointmentId,
-        customerId: new mongoose.Types.ObjectId(customerId),
-        status: "confirmed",
-      },
-      { $set: { paymentStatus: "paid" } },
-      { new: true }
-    );
-
-    if (!appointment) {
-      return { handled: false };
-    }
-
-    const amountPaid =
-      typeof session.amount_total === "number"
-        ? session.amount_total / 100
-        : appointment.servicePrice;
-
-    try {
-      await Transaction.findOneAndUpdate(
-        { stripeSessionId: session.id },
-        {
-          $set: {
-            appointmentId: appointment._id,
-            customerId: new mongoose.Types.ObjectId(customerId),
-            amount: amountPaid,
-            currency: (session.currency || "usd").toLowerCase(),
-            status: "paid",
-          },
-        },
-        { upsert: true, new: true }
-      );
-    } catch (err) {
-      if (
-        !(
-          typeof err === "object" &&
-          err !== null &&
-          "code" in err &&
-          (err as { code?: number }).code === 11000
-        )
-      ) {
-        throw err;
-      }
-    }
-
-    return { handled: true };
+    return fulfillPaidCheckoutSession(session);
   }
 
   if (
@@ -260,23 +340,53 @@ export async function getCustomerPaymentSessionStatus(
   sessionId: string,
   customerId: string
 ) {
-  if (!sessionId.trim()) {
+  const trimmedSessionId = sessionId.trim();
+  if (!trimmedSessionId) {
     throw new ApiError(400, "Stripe session ID is required", "INVALID_SESSION");
   }
 
-  const transaction = await Transaction.findOne({
-    stripeSessionId: sessionId.trim(),
+  const populateOptions = {
+    path: "appointmentId",
+    select: "appointmentDate timeSlot status paymentStatus servicePrice serviceId",
+    populate: {
+      path: "serviceId",
+      select: "serviceName category image duration",
+    },
+  };
+
+  let transaction = await Transaction.findOne({
+    stripeSessionId: trimmedSessionId,
     customerId: new mongoose.Types.ObjectId(customerId),
   })
-    .populate({
-      path: "appointmentId",
-      select: "appointmentDate timeSlot status paymentStatus servicePrice serviceId",
-      populate: {
-        path: "serviceId",
-        select: "serviceName category image duration",
-      },
-    })
+    .populate(populateOptions)
     .lean();
+
+  // Fallback to Stripe API directly when customer reaches /payment/success before webhook delivery.
+  if (!transaction) {
+    try {
+      const stripe = getStripe();
+      const retrieved = await stripe.checkout.sessions.retrieve(trimmedSessionId);
+      if (retrieved.metadata?.customerId === customerId) {
+        if (retrieved.payment_status === "paid") {
+          await fulfillPaidCheckoutSession(retrieved, stripe);
+          transaction = await Transaction.findOne({
+            stripeSessionId: trimmedSessionId,
+            customerId: new mongoose.Types.ObjectId(customerId),
+          })
+            .populate(populateOptions)
+            .lean();
+        } else if (retrieved.status === "expired") {
+          return {
+            verified: false,
+            status: "failed" as const,
+            transaction: null,
+          };
+        }
+      }
+    } catch {
+      // Ignore transient Stripe API lookup failure and keep polling as processing.
+    }
+  }
 
   if (!transaction) {
     return {
