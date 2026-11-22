@@ -28,10 +28,10 @@ const SAMPLE_SERVICES = [
     status: "active" as const,
   },
   {
-    serviceName: "Keratin Silk Botanical Infusion",
+    serviceName: "Nano-Mist & Steam Keratin Therapy",
     category: "Hair Treatment",
     description:
-      "Deep restorative smoothing treatment infused with plant keratin and argan oil to eliminate frizz and restore mirror-like shine.",
+      "Warm nano-mist steam and silk protein infusion applied at the wash basin to repair damaged cuticles and lock in lasting glass-hair shine.",
     price: 130,
     duration: 90,
     image: "/images/services/hair-treatment.jpg",
