@@ -1,6 +1,6 @@
 import cors from "cors";
 import express from "express";
-import helmet from "helmet";
+import * as helmetModule from "helmet";
 import mongoose from "mongoose";
 import { connectDB } from "./config/db.js";
 import { getEnv } from "./config/env.js";
@@ -34,7 +34,12 @@ export function createApp() {
     process.env.CLIENT_URL || "http://localhost:3000"
   );
 
-  app.use(helmet());
+  const helmetFactory = (
+    typeof helmetModule.default === "function"
+      ? helmetModule.default
+      : helmetModule
+  ) as unknown as () => express.RequestHandler;
+  app.use(helmetFactory());
   app.use(
     cors({
       origin: (origin, callback) => {
