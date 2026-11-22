@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "seed": "tsx src/scripts/seed.ts",
-    "test": "node --experimental-strip-types --test src/**/*.test.ts"
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "better-auth": "^1.3.4",
