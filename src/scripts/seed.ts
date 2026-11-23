@@ -11,7 +11,7 @@ const SAMPLE_SERVICES = [
     serviceName: "Signature Tailored Haircut & Blowout",
     category: "Haircut & Styling",
     description:
-      "Personalized consultation, precision haircut tailored to your face shape, soothing botanical wash, and signature blowout finish.",
+      "Personalized consultation, precision haircut tailored to your face shape, soothing scalp wash, and glossy finish.",
     price: 65,
     duration: 60,
     image: "/images/services/haircut-styling.jpg",
@@ -21,7 +21,7 @@ const SAMPLE_SERVICES = [
     serviceName: "Dimensional Balayage & Gloss",
     category: "Hair Coloring",
     description:
-      "Hand-painted sun-kissed highlights paired with a bond-protecting botanical gloss for luminous, low-maintenance color.",
+      "Hand-painted sun-kissed highlights paired with a bond-protecting silk gloss for luminous, low-maintenance color.",
     price: 165,
     duration: 150,
     image: "/images/services/hair-coloring.jpg",
@@ -38,10 +38,10 @@ const SAMPLE_SERVICES = [
     status: "active" as const,
   },
   {
-    serviceName: "Calm Radiance Botanical Facial",
+    serviceName: "Calm Radiance Aqua Hydration Facial",
     category: "Facial & Skincare",
     description:
-      "Gentle enzyme exfoliation, lymphatic facial massage, and nutrient-rich green tea hydration mask for visibly refreshed skin.",
+      "Soothing essence gel mask, gentle lymphatic facial massage, and multi-layer aqua hydration for luminous glass-skin clarity.",
     price: 95,
     duration: 60,
     image: "/images/services/facial-skincare.jpg",
@@ -58,10 +58,10 @@ const SAMPLE_SERVICES = [
     status: "active" as const,
   },
   {
-    serviceName: "Botanical Spa Manicure & Pedicure",
+    serviceName: "Cuticle Care & Mineral Spa Manicure",
     category: "Manicure & Pedicure",
     description:
-      "Detailed cuticle care, warm mineral soak, sugar exfoliation, nourishing hand and foot massage, and long-wear polish.",
+      "Precision cuticle shaping, gentle nail filing, warm mineral soak, sugar exfoliation, hand massage, and sheer long-wear polish.",
     price: 75,
     duration: 75,
     image: "/images/services/manicure-pedicure.jpg",
@@ -71,17 +71,17 @@ const SAMPLE_SERVICES = [
     serviceName: "Warm Herbal Stone Massage",
     category: "Spa & Massage",
     description:
-      "Slow, restorative full-body massage combining heated basalt stones and warm eucalyptus oil to melt away deep tension.",
+      "Slow, restorative full-body massage combining heated basalt stones and warm aromatic herbal oil to melt away deep tension.",
     price: 120,
     duration: 60,
     image: "/images/services/spa-massage.jpg",
     status: "active" as const,
   },
   {
-    serviceName: "Express Silk Press & Trim",
+    serviceName: "Express Layered Trim & Sleek Styling",
     category: "Haircut & Styling",
     description:
-      "Healthy end-trimming and humidity-resistant silk styling designed to leave hair bouncy, sleek, and protected.",
+      "Clean face-framing end-trimming and humidity-resistant sleek styling designed to leave hair glossy, weightless, and soft.",
     price: 80,
     duration: 60,
     image: "/images/services/silk-press.jpg",
