@@ -1,6 +1,6 @@
 import type { TimeSlot } from "../constants/salon.js";
 
-export const SALON_TIME_ZONE = "America/Chicago";
+export const SALON_TIME_ZONE = "Asia/Seoul";
 
 /**
  * Validates that a YYYY-MM-DD string represents a real calendar date (rejects e.g. 2026-02-30).

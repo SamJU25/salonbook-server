@@ -51,14 +51,14 @@ describe("appointment rules & profile whitelist", () => {
     assert.equal(isValidCalendarDate("2028-02-29"), true);
     assert.equal(isValidCalendarDate("2026-02-29"), false);
 
-    // 2026-05-10 18:00 UTC = 1:00 PM CDT in Austin (America/Chicago)
-    const middayAustin = new Date("2026-05-10T18:00:00Z");
+    // 2026-05-10 04:00 UTC = 1:00 PM KST in Seoul (Asia/Seoul)
+    const middaySeoul = new Date("2026-05-10T04:00:00Z");
     assert.throws(
-      () => assertSlotNotPast("2026-05-10", "09:00 AM", middayAustin),
+      () => assertSlotNotPast("2026-05-10", "09:00 AM", middaySeoul),
       (err: unknown) => err instanceof ApiError && err.code === "SLOT_IN_PAST"
     );
     assert.doesNotThrow(() =>
-      assertSlotNotPast("2026-05-10", "03:00 PM", middayAustin)
+      assertSlotNotPast("2026-05-10", "03:00 PM", middaySeoul)
     );
 
     const invalidDate = createAppointmentSchema.safeParse({
